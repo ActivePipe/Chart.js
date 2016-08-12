@@ -84,6 +84,8 @@ module.exports = function(Chart) {
 					// Tooltip
 					label: me.chart.data.labels[index],
 					datasetLabel: dataset.label,
+					sends: dataset.sends,
+					curved: dataset.curved,
 
 					// Appearance
 					base: reset ? scaleBase : me.calculateBarBase(me.index, index),

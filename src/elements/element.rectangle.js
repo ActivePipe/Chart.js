@@ -8,7 +8,9 @@ module.exports = function(Chart) {
 		backgroundColor: globalOpts.defaultColor,
 		borderWidth: 0,
 		borderColor: globalOpts.defaultColor,
-		borderSkipped: 'bottom'
+		borderSkipped: 'bottom',
+		send: false,
+		curved: false
 	};
 
 	Chart.elements.Rectangle = Chart.Element.extend({
@@ -17,10 +19,16 @@ module.exports = function(Chart) {
 			var vm = this._view;
 
 			var halfWidth = vm.width / 2,
-				leftX = vm.x - halfWidth,
-				rightX = vm.x + halfWidth,
+				leftX = vm.x - halfWidth - 2,
+				rightX = vm.x + halfWidth + 2,
 				top = vm.base - (vm.base - vm.y),
-				halfStroke = vm.borderWidth / 2;
+				halfStroke = vm.borderWidth / 2,
+				radius = halfWidth,
+				canter = leftX + radius,
+				label = vm.label[vm.label.length - 1],
+				sends = vm.sends,
+				send = false,
+      	curved = vm.curved
 
 			// Canvas doesn't allow us to stroke inside the width so we can
 			// adjust the sizes to fit if we're setting a stroke on the line
@@ -55,15 +63,75 @@ module.exports = function(Chart) {
 				return corners[(startCorner + index) % 4];
 			}
 
-			// Draw rectangle from 'startCorner'
-			ctx.moveTo.apply(ctx, cornerAt(0));
-			for (var i = 1; i < 4; i++)
-				ctx.lineTo.apply(ctx, cornerAt(i));
+      if (curved) {
+        if (radius > (vm.base-top)/2) radius = (vm.base-top)/2;
+          ctx.moveTo(leftX, vm.base);
+	        ctx.lineTo(leftX, top + radius);
+	        ctx.quadraticCurveTo(leftX, top, leftX + radius, top);
+	        ctx.lineTo(rightX - radius, top);
+	        ctx.quadraticCurveTo(rightX, top, rightX, top + radius);
+	        ctx.lineTo(rightX, vm.base);
+	        ctx.lineTo(leftX, vm.base);
+      } else {
+				// Draw rectangle from 'startCorner'
+				ctx.moveTo.apply(ctx, cornerAt(0));
+				for (var i = 1; i < 4; i++)
+					ctx.lineTo.apply(ctx, cornerAt(i));
+      }
 
-			ctx.fill();
+      ctx.fill();
 			if (vm.borderWidth) {
 				ctx.stroke();
 			}
+
+			// is sent data
+			for (var j = 0; j < sends.length; j++) {
+				if (sends[j] === label) {
+					send = true;
+				}
+			}
+
+      // adding send icons
+  		if (send) {
+  			radius = halfWidth
+
+  			ctx.save();
+  			ctx.translate(2, 0);
+
+	      ctx.beginPath();
+	      ctx.arc(canter, vm.base, radius+1, 0, 2 * Math.PI, false);
+	      ctx.fillStyle = 'white';
+	      ctx.fill();
+
+	      ctx.lineWidth = 2;
+	      ctx.strokeStyle = vm.borderColor;
+	      ctx.stroke();
+
+	      var padding = radius / 2.3
+
+	      ctx.translate(canter, vm.base)
+
+  			ctx.rotate(45 * Math.PI / 180);
+
+	      // send icon
+	      ctx.beginPath();
+	      ctx.moveTo(0, 0 - (radius / 10))
+	      ctx.lineTo(0 - (radius / 10), 0 + (radius * .9) - padding - 2);
+	      ctx.lineTo(padding - radius, 0 + radius - padding - 2);
+	      ctx.lineTo(0, 0 - radius + padding - 2);
+	      ctx.lineTo(radius - padding, 0 + radius - padding - 2);
+	      ctx.lineTo(radius / 10, 0 + (radius * .9) - padding - 2);
+	      ctx.lineTo(0, 0 - (radius / 10))
+
+
+	      ctx.lineWidth = 1;
+	      ctx.lineJoin = 'round';
+	      ctx.fillStyle = '#909090';
+	      ctx.strokeStyle ='#909090'
+	      ctx.stroke();
+	      ctx.fill();
+	      ctx.restore()
+	    }
 		},
 		height: function() {
 			var vm = this._view;
